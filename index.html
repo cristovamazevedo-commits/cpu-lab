@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPU Lab — Arquitetura de Processadores</title>
+  <meta name="description" content="Ambiente interativo para aprender arquitetura de processadores: ciclo de instrução, pipeline, registradores e simulação de CPU." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ─── SIDEBAR NAV ─── -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-title">CPU Lab</div>
+        <div class="brand-sub">Arq. de Computadores</div>
+      </div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" data-tab="overview">
+        <span class="nav-icon">🏛️</span><span>Visão Geral</span>
+      </li>
+      <li class="nav-item" data-tab="cycle">
+        <span class="nav-icon">🔄</span><span>Ciclo de Instrução</span>
+      </li>
+      <li class="nav-item" data-tab="simulator">
+        <span class="nav-icon">🖥️</span><span>Simulador de CPU</span>
+      </li>
+      <li class="nav-item" data-tab="pipeline">
+        <span class="nav-icon">🔀</span><span>Pipeline</span>
+      </li>
+      <li class="nav-item" data-tab="memory">
+        <span class="nav-icon">🧠</span><span>Hierarquia de Memória</span>
+      </li>
+      <li class="nav-item" data-tab="quiz">
+        <span class="nav-icon">🏆</span><span>Quiz</span>
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="progress-label">Seu progresso</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="globalProgress"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+  </nav>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <main id="main">
+    <!-- HEADER -->
+    <header class="top-header">
+      <button id="menuToggle" class="menu-btn">☰</button>
+      <div class="header-title" id="headerTitle">Visão Geral da CPU</div>
+      <div class="header-badges">
+        <div class="badge badge-live">🟢 Ao Vivo</div>
+        <div class="badge badge-level">Nível Iniciante</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 1: VISÃO GERAL
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content active" id="tab-overview">
+      <div class="section-hero">
+        <h1>O que é um Processador?</h1>
+        <p class="lead">O <strong>processador (CPU)</strong> é o "cérebro" do computador. Ele busca instruções na memória, decodifica e executa operações a bilhões de vezes por segundo.</p>
+      </div>
+
+      <!-- CPU Anatomy Diagram -->
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🏗️</span> Anatomia da CPU</div>
+        <div class="cpu-diagram" id="cpuDiagram">
+          <!-- Control Unit -->
+          <div class="cpu-block cu" id="blk-cu" data-info="cu">
+            <div class="blk-icon">🎛️</div>
+            <div class="blk-title">Unidade de Controle</div>
+            <div class="blk-sub">Control Unit (CU)</div>
+          </div>
+          <!-- ALU -->
+          <div class="cpu-block alu" id="blk-alu" data-info="alu">
+            <div class="blk-icon">➕</div>
+            <div class="blk-title">ULA</div>
+            <div class="blk-sub">Arithmetic Logic Unit</div>
+          </div>
+          <!-- Registers -->
+          <div class="cpu-block regs" id="blk-regs" data-info="regs">
+            <div class="blk-icon">📦</div>
+            <div class="blk-title">Registradores</div>
+            <div class="blk-sub">PC · IR · ACC · MAR · MDR</div>
+          </div>
+          <!-- Cache -->
+          <div class="cpu-block cache" id="blk-cache" data-info="cache">
+            <div class="blk-icon">⚡</div>
+            <div class="blk-title">Cache</div>
+            <div class="blk-sub">L1 · L2 · L3</div>
+          </div>
+          <!-- Bus -->
+          <div class="cpu-bus">
+            <div class="bus-line data-bus"><span>Barramento de Dados</span></div>
+            <div class="bus-line addr-bus"><span>Barramento de Endereço</span></div>
+            <div class="bus-line ctrl-bus"><span>Barramento de Controle</span></div>
+          </div>
+          <!-- Memory (external) -->
+          <div class="cpu-block memory-ext" id="blk-mem" data-info="mem">
+            <div class="blk-icon">🧠</div>
+            <div class="blk-title">Memória RAM</div>
+            <div class="blk-sub">Externa à CPU</div>
+          </div>
+        </div>
+        <p class="diagram-hint">👆 Clique em qualquer componente para ver detalhes</p>
+      </div>
+
+      <!-- Info panel -->
+      <div class="info-panel" id="infoPanel" style="display:none;">
+        <div class="info-panel-header">
+          <span id="infoPanelIcon"></span>
+          <span id="infoPanelTitle"></span>
+          <button class="close-btn" onclick="closeInfo()">✕</button>
+        </div>
+        <div id="infoPanelBody"></div>
+      </div>
+
+      <!-- Key facts -->
+      <div class="facts-grid">
+        <div class="fact-card">
+          <div class="fact-num" data-count="3">0</div>
+          <div class="fact-label">Fases do ciclo básico</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-num" data-count="32">0</div>
+          <div class="fact-label">Registradores (RISC-V)</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-num" data-count="5">0</div>
+          <div class="fact-label">Estágios de pipeline</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-num ghz">0</div>
+          <div class="fact-label">GHz — velocidade típica</div>
+        </div>
+      </div>
+
+      <!-- Concept cards -->
+      <div class="concepts-row">
+        <div class="concept-card">
+          <div class="concept-icon">⚙️</div>
+          <h3>Clock</h3>
+          <p>O sinal de clock sincroniza todas as operações. Cada ciclo de clock = 1 "batida" do processador.</p>
+          <div class="clock-anim"><div class="clock-wave"></div></div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔢</div>
+          <h3>Word Size</h3>
+          <p>Quantidade de bits processados de uma vez. CPUs modernas são <strong>64-bit</strong>, manipulando 2⁶⁴ endereços.</p>
+          <div class="bit-row">
+            <span class="bit" style="--d:0">1</span><span class="bit" style="--d:1">0</span><span class="bit" style="--d:2">1</span><span class="bit" style="--d:3">1</span><span class="bit" style="--d:4">0</span><span class="bit" style="--d:5">0</span><span class="bit" style="--d:6">1</span><span class="bit" style="--d:7">1</span>
+          </div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📐</div>
+          <h3>ISA</h3>
+          <p><strong>Instruction Set Architecture</strong> — conjunto de instruções que a CPU entende (x86, ARM, RISC-V).</p>
+          <div class="isa-tags">
+            <span class="tag">x86-64</span><span class="tag">ARM</span><span class="tag">RISC-V</span><span class="tag">MIPS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 2: CICLO DE INSTRUÇÃO
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content" id="tab-cycle">
+      <div class="section-hero">
+        <h1>Ciclo de Instrução</h1>
+        <p class="lead">Toda instrução passa por fases bem definidas. Veja animado o caminho percorrido dentro da CPU.</p>
+      </div>
+
+      <div class="cycle-layout">
+        <!-- Steps panel -->
+        <div class="card cycle-steps-card">
+          <div class="card-header"><span class="card-icon">📋</span> Fases do Ciclo</div>
+          <div class="cycle-steps" id="cycleSteps">
+            <div class="cycle-step" data-step="0">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">🔍 FETCH</div>
+                <div class="step-desc">PC → MAR → Memória → MDR → IR<br>A CPU busca a instrução na memória usando o endereço do PC.</div>
+              </div>
+            </div>
+            <div class="cycle-step" data-step="1">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">🔓 DECODE</div>
+                <div class="step-desc">A Unidade de Controle analisa os bits do IR para identificar a operação e os operandos.</div>
+              </div>
+            </div>
+            <div class="cycle-step" data-step="2">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">📥 FETCH OPERANDS</div>
+                <div class="step-desc">Se necessário, busca dados adicionais da memória ou registradores.</div>
+              </div>
+            </div>
+            <div class="cycle-step" data-step="3">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">⚡ EXECUTE</div>
+                <div class="step-desc">A ULA executa a operação aritmética ou lógica especificada.</div>
+              </div>
+            </div>
+            <div class="cycle-step" data-step="4">
+              <div class="step-num">5</div>
+              <div class="step-body">
+                <div class="step-title">💾 WRITE BACK</div>
+                <div class="step-desc">O resultado é escrito no registrador de destino ou na memória. PC é incrementado.</div>
+              </div>
+            </div>
+          </div>
+          <div class="cycle-controls">
+            <button class="btn btn-secondary" id="cycleReset" onclick="resetCycle()">↺ Reiniciar</button>
+            <button class="btn btn-primary" id="cycleNext" onclick="nextCycleStep()">Próxima fase →</button>
+            <button class="btn btn-accent" id="cycleAuto" onclick="toggleAutoCycle()">▶ Auto</button>
+          </div>
+        </div>
+
+        <!-- Animated CPU -->
+        <div class="card cycle-visual-card">
+          <div class="card-header"><span class="card-icon">🎬</span> Visualização</div>
+          <div class="cycle-visual" id="cycleVisual">
+            <!-- Components -->
+            <div class="cv-mem" id="cvMem">
+              <div class="cv-label">Memória RAM</div>
+              <div class="cv-mem-cells">
+                <div class="mem-cell active-cell">ADD R1,R2</div>
+                <div class="mem-cell">MOV R3,5</div>
+                <div class="mem-cell">SUB R1,R3</div>
+              </div>
+            </div>
+            <div class="cv-cpu-box">
+              <div class="cv-cpu-label">CPU</div>
+              <div class="cv-cu" id="cvCU">
+                <div class="cv-label">CU</div>
+                <div class="cv-reg-row">
+                  <div class="cv-reg" id="cvPC"><span class="reg-name">PC</span><span class="reg-val" id="pcVal">0x00</span></div>
+                  <div class="cv-reg" id="cvMAR"><span class="reg-name">MAR</span><span class="reg-val" id="marVal">—</span></div>
+                  <div class="cv-reg" id="cvMDR"><span class="reg-name">MDR</span><span class="reg-val" id="mdrVal">—</span></div>
+                  <div class="cv-reg" id="cvIR"><span class="reg-name">IR</span><span class="reg-val" id="irVal">—</span></div>
+                </div>
+              </div>
+              <div class="cv-alu" id="cvALU">
+                <div class="cv-label">ULA</div>
+                <div class="alu-display" id="aluDisplay">—</div>
+              </div>
+              <div class="cv-regs-box" id="cvRegs">
+                <div class="cv-label">Registradores</div>
+                <div class="cv-reg-row">
+                  <div class="cv-reg small-reg" id="cvR1"><span class="reg-name">R1</span><span class="reg-val" id="r1Val">0</span></div>
+                  <div class="cv-reg small-reg" id="cvR2"><span class="reg-name">R2</span><span class="reg-val" id="r2Val">3</span></div>
+                  <div class="cv-reg small-reg" id="cvR3"><span class="reg-name">R3</span><span class="reg-val" id="r3Val">0</span></div>
+                </div>
+              </div>
+            </div>
+            <!-- Data packets (animated) -->
+            <div class="data-packet" id="dataPacket" style="display:none;"></div>
+          </div>
+          <div class="cycle-status" id="cycleStatus">⬅️ Clique em "Próxima fase" para iniciar</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 3: SIMULADOR DE CPU
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content" id="tab-simulator">
+      <div class="section-hero">
+        <h1>Simulador de CPU</h1>
+        <p class="lead">Escreva instruções em assembly simplificado e veja a CPU executar passo a passo.</p>
+      </div>
+
+      <div class="sim-layout">
+        <!-- Editor -->
+        <div class="card sim-editor-card">
+          <div class="card-header"><span class="card-icon">📝</span> Editor de Assembly</div>
+          <div class="editor-toolbar">
+            <button class="btn btn-xs" onclick="loadExample('basic')">Exemplo Básico</button>
+            <button class="btn btn-xs" onclick="loadExample('loop')">Loop</button>
+            <button class="btn btn-xs" onclick="loadExample('conditional')">Condicional</button>
+            <button class="btn btn-xs btn-danger" onclick="clearEditor()">Limpar</button>
+          </div>
+          <textarea id="asmEditor" class="asm-editor" spellcheck="false" placeholder="; Escreva seu assembly aqui
+; Instruções suportadas:
+; MOV Rx, valor   — carrega valor
+; ADD Rx, Ry      — soma
+; SUB Rx, Ry      — subtrai
+; MUL Rx, Ry      — multiplica
+; CMP Rx, Ry      — compara
+; JMP label:      — salta
+; JZ  label:      — salta se zero
+; HALT            — para
+
+MOV R1, 5
+MOV R2, 3
+ADD R1, R2
+HALT"></textarea>
+          <div class="sim-controls">
+            <button class="btn btn-primary" id="btnLoad" onclick="loadProgram()">⚙️ Compilar</button>
+            <button class="btn btn-accent" id="btnStep" onclick="stepProgram()" disabled>→ Passo</button>
+            <button class="btn btn-success" id="btnRun" onclick="runProgram()" disabled>▶ Executar</button>
+            <button class="btn btn-secondary" id="btnReset" onclick="resetSim()" disabled>↺ Reset</button>
+          </div>
+          <div class="instruction-ref">
+            <div class="ref-title">📖 Referência rápida</div>
+            <div class="ref-grid">
+              <div class="ref-item"><code>MOV R1, 42</code> → R1 = 42</div>
+              <div class="ref-item"><code>ADD R1, R2</code> → R1 = R1 + R2</div>
+              <div class="ref-item"><code>SUB R1, R2</code> → R1 = R1 - R2</div>
+              <div class="ref-item"><code>MUL R1, R2</code> → R1 = R1 × R2</div>
+              <div class="ref-item"><code>CMP R1, R2</code> → seta flags</div>
+              <div class="ref-item"><code>JMP loop</code> → salta para loop</div>
+              <div class="ref-item"><code>JZ  end</code> → salta se ZF=1</div>
+              <div class="ref-item"><code>HALT</code> → encerra</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CPU State -->
+        <div class="card sim-state-card">
+          <div class="card-header"><span class="card-icon">🖥️</span> Estado da CPU</div>
+          <!-- Registers -->
+          <div class="state-section">
+            <div class="state-title">Registradores de Propósito Geral</div>
+            <div class="regs-grid" id="simRegsGrid">
+              <!-- generated by JS -->
+            </div>
+          </div>
+          <div class="state-section">
+            <div class="state-title">Registradores Especiais</div>
+            <div class="special-regs">
+              <div class="sreg"><span class="sreg-name">PC</span><span class="sreg-val" id="simPC">0</span></div>
+              <div class="sreg"><span class="sreg-name">IR</span><span class="sreg-val" id="simIR">—</span></div>
+              <div class="sreg"><span class="sreg-name">ACC</span><span class="sreg-val" id="simACC">0</span></div>
+            </div>
+          </div>
+          <div class="state-section">
+            <div class="state-title">Flags</div>
+            <div class="flags-row">
+              <div class="flag" id="flagZ"><div class="flag-label">ZF</div><div class="flag-val" id="fZ">0</div><div class="flag-desc">Zero</div></div>
+              <div class="flag" id="flagN"><div class="flag-label">NF</div><div class="flag-val" id="fN">0</div><div class="flag-desc">Negativo</div></div>
+              <div class="flag" id="flagC"><div class="flag-label">CF</div><div class="flag-val" id="fC">0</div><div class="flag-desc">Carry</div></div>
+              <div class="flag" id="flagO"><div class="flag-label">OF</div><div class="flag-val" id="fO">0</div><div class="flag-desc">Overflow</div></div>
+            </div>
+          </div>
+          <!-- Memory -->
+          <div class="state-section">
+            <div class="state-title">Memória do Programa</div>
+            <div class="prog-memory" id="progMemory"></div>
+          </div>
+        </div>
+
+        <!-- Console -->
+        <div class="card sim-console-card">
+          <div class="card-header"><span class="card-icon">📟</span> Console / Log</div>
+          <div class="console-output" id="consoleOutput">
+            <div class="console-line console-info">Sistema pronto. Carregue um programa para começar.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 4: PIPELINE
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content" id="tab-pipeline">
+      <div class="section-hero">
+        <h1>Pipeline de Instrução</h1>
+        <p class="lead">Pipeline permite executar várias instruções simultaneamente, sobrepostas em diferentes estágios — aumentando o <em>throughput</em> drasticamente.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">⚖️</span> Sem Pipeline vs Com Pipeline</div>
+        <div class="pipeline-compare">
+          <div class="compare-col">
+            <div class="compare-title no-pipe">❌ Sem Pipeline</div>
+            <div class="compare-grid no-pipe-grid" id="noPipeGrid"></div>
+            <div class="compare-stat" id="noPipeStat">Ciclos: —</div>
+          </div>
+          <div class="compare-col">
+            <div class="compare-title with-pipe">✅ Com Pipeline</div>
+            <div class="compare-grid pipe-grid" id="pipeGrid"></div>
+            <div class="compare-stat" id="pipeStat">Ciclos: —</div>
+          </div>
+        </div>
+        <div class="pipeline-controls">
+          <div class="ctrl-row">
+            <label>Nº de Instruções: <strong id="numInstLabel">4</strong></label>
+            <input type="range" id="numInstSlider" min="1" max="8" value="4" oninput="updatePipelineViz()" />
+          </div>
+          <button class="btn btn-primary" onclick="animatePipeline()">▶ Animar</button>
+          <button class="btn btn-secondary" onclick="resetPipeline()">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- Speedup -->
+      <div class="speedup-card card">
+        <div class="card-header"><span class="card-icon">📊</span> Ganho de Desempenho</div>
+        <div class="speedup-content">
+          <div class="speedup-formula">
+            <div class="formula-box">
+              Speedup = <span class="formula-frac"><span class="frac-num">n × k</span><span class="frac-bar"></span><span class="frac-den">n + (k − 1)</span></span>
+            </div>
+            <div class="formula-legend">onde <em>n</em> = nº de instruções, <em>k</em> = estágios do pipeline</div>
+          </div>
+          <div class="speedup-calc" id="speedupCalc">
+            <div class="calc-row"><span>Instruções (n):</span><strong id="calcN">4</strong></div>
+            <div class="calc-row"><span>Estágios (k):</span><strong>5</strong></div>
+            <div class="calc-row"><span>Ciclos sem pipeline:</span><strong id="calcNoPipe">20</strong></div>
+            <div class="calc-row"><span>Ciclos com pipeline:</span><strong id="calcPipe">8</strong></div>
+            <div class="calc-row highlight"><span>Speedup:</span><strong id="calcSpeedup">2.5×</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hazards -->
+      <div class="card">
+        <div class="card-header"><span class="card-icon">⚠️</span> Hazards — Problemas do Pipeline</div>
+        <div class="hazards-grid">
+          <div class="hazard-card">
+            <div class="hazard-icon">🏗️</div>
+            <div class="hazard-title">Structural Hazard</div>
+            <div class="hazard-desc">Conflito de recursos de hardware. Ex.: duas instruções precisam da mesma unidade funcional ao mesmo tempo.</div>
+            <div class="hazard-solution">✅ Solução: Duplicar unidades (ex: múltiplos ALUs)</div>
+          </div>
+          <div class="hazard-card">
+            <div class="hazard-icon">📊</div>
+            <div class="hazard-title">Data Hazard</div>
+            <div class="hazard-desc">Uma instrução depende do resultado de outra ainda no pipeline.</div>
+            <div class="hazard-solution">✅ Solução: Forwarding / Stall</div>
+            <div class="hazard-example"><code>ADD R1, R2<br>SUB R3, R1 ← depende de R1!</code></div>
+          </div>
+          <div class="hazard-card">
+            <div class="hazard-icon">🔀</div>
+            <div class="hazard-title">Control Hazard</div>
+            <div class="hazard-desc">Desvios condicionais (branches) causam incerteza sobre qual instrução buscar a seguir.</div>
+            <div class="hazard-solution">✅ Solução: Branch Prediction</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 5: HIERARQUIA DE MEMÓRIA
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content" id="tab-memory">
+      <div class="section-hero">
+        <h1>Hierarquia de Memória</h1>
+        <p class="lead">A memória é organizada em níveis — quanto mais próxima da CPU, mais rápida e menor. Quanto mais distante, mais lenta e maior.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🏔️</span> Pirâmide de Memória</div>
+        <div class="mem-pyramid" id="memPyramid">
+          <div class="pyramid-layer" data-level="0" style="--w:14%;--color:#a78bfa">
+            <div class="layer-info">
+              <div class="layer-name">Registradores</div>
+              <div class="layer-stats"><span>~100B</span><span>&lt; 1 ns</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="1" style="--w:24%;--color:#60a5fa">
+            <div class="layer-info">
+              <div class="layer-name">Cache L1</div>
+              <div class="layer-stats"><span>32–64 KB</span><span>1–4 ns</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="2" style="--w:36%;--color:#34d399">
+            <div class="layer-info">
+              <div class="layer-name">Cache L2</div>
+              <div class="layer-stats"><span>256 KB–4 MB</span><span>4–12 ns</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="3" style="--w:50%;--color:#fbbf24">
+            <div class="layer-info">
+              <div class="layer-name">Cache L3</div>
+              <div class="layer-stats"><span>4–32 MB</span><span>12–40 ns</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="4" style="--w:66%;--color:#f87171">
+            <div class="layer-info">
+              <div class="layer-name">RAM (DRAM)</div>
+              <div class="layer-stats"><span>4–64 GB</span><span>60–100 ns</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="5" style="--w:82%;--color:#fb923c">
+            <div class="layer-info">
+              <div class="layer-name">SSD / NVMe</div>
+              <div class="layer-stats"><span>256 GB–2 TB</span><span>50–150 µs</span></div>
+            </div>
+          </div>
+          <div class="pyramid-layer" data-level="6" style="--w:100%;--color:#94a3b8">
+            <div class="layer-info">
+              <div class="layer-name">HDD / Armazenamento</div>
+              <div class="layer-stats"><span>1–20 TB</span><span>3–10 ms</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="diagram-hint">👆 Clique em um nível para ver detalhes</p>
+      </div>
+
+      <!-- Cache hit/miss demo -->
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🎯</span> Demonstração: Cache Hit vs Miss</div>
+        <div class="cache-demo">
+          <div class="cache-demo-controls">
+            <label>Endereço a acessar:</label>
+            <input type="number" id="cacheAddr" min="0" max="31" value="5" class="addr-input" />
+            <button class="btn btn-primary" onclick="simulateCacheAccess()">🔍 Acessar</button>
+            <button class="btn btn-secondary" onclick="clearCacheDemo()">🗑️ Limpar Cache</button>
+          </div>
+          <div class="cache-demo-visual">
+            <div class="cache-demo-box">
+              <div class="cdb-title">Cache (8 slots)</div>
+              <div class="cache-slots" id="cacheSlots"></div>
+            </div>
+            <div class="cache-demo-arrow" id="cacheArrow">⟶</div>
+            <div class="cache-demo-box">
+              <div class="cdb-title">Memória RAM</div>
+              <div class="ram-cells" id="ramCells"></div>
+            </div>
+          </div>
+          <div class="cache-result" id="cacheResult"></div>
+          <div class="cache-stats-row">
+            <div class="cache-stat-item">
+              <div class="csi-label">Cache Hits</div>
+              <div class="csi-val green" id="cacheHits">0</div>
+            </div>
+            <div class="cache-stat-item">
+              <div class="csi-label">Cache Misses</div>
+              <div class="csi-val red" id="cacheMisses">0</div>
+            </div>
+            <div class="cache-stat-item">
+              <div class="csi-label">Hit Rate</div>
+              <div class="csi-val blue" id="cacheHitRate">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 6: QUIZ
+    ═══════════════════════════════════════════ -->
+    <section class="tab-content" id="tab-quiz">
+      <div class="section-hero">
+        <h1>🏆 Quiz — Teste seus Conhecimentos</h1>
+        <p class="lead">Responda as questões para consolidar o que aprendeu sobre arquitetura de processadores.</p>
+      </div>
+
+      <div class="quiz-layout">
+        <div class="card quiz-card" id="quizCard">
+          <div class="quiz-progress-header">
+            <div class="quiz-prog-bar"><div class="quiz-prog-fill" id="quizProgFill"></div></div>
+            <div class="quiz-prog-text" id="quizProgText">Questão 1 de 10</div>
+          </div>
+          <div class="question-area" id="questionArea">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="quiz-nav">
+            <button class="btn btn-secondary" id="btnPrevQ" onclick="prevQuestion()" disabled>← Anterior</button>
+            <div class="quiz-score-inline" id="quizScoreInline"></div>
+            <button class="btn btn-primary" id="btnNextQ" onclick="nextQuestion()" disabled>Próxima →</button>
+          </div>
+        </div>
+
+        <div class="card quiz-results-card" id="quizResults" style="display:none;">
+          <div class="results-icon">🏆</div>
+          <h2 id="resultsTitle"></h2>
+          <div class="results-score" id="resultsScore"></div>
+          <div class="results-bar-wrap"><div class="results-bar" id="resultsBar"></div></div>
+          <div class="results-feedback" id="resultsFeedback"></div>
+          <button class="btn btn-primary btn-lg" onclick="restartQuiz()">🔄 Refazer Quiz</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
